@@ -1,3 +1,3 @@
-module github.com/SMKim94/csv-to-xlsx
+module github.com/SMKim94/csvtoxlsx
 
 go 1.18
