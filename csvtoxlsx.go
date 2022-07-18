@@ -5,6 +5,8 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+
+	_ "github.com/xuri/excelize/v2"
 )
 
 type CSVToXLSXError struct {
@@ -42,6 +44,11 @@ func LoadCSV(filePath string) ([][]string, error) {
 	}
 
 	return rows, nil
+}
+
+func CreateXLSX(filePath string, sheetName string) {
+	// file := excelize.NewFile()
+	// index := file.NewSheet(sheetName)
 }
 
 func ConvertCSVToXLSX(csvPath string, xlsxPath string) {
