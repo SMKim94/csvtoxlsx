@@ -1,12 +1,15 @@
 package csvtoxlsx
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
-	_ "github.com/xuri/excelize/v2"
+	"github.com/xuri/excelize/v2"
 )
 
 type CSVToXLSXError struct {
@@ -31,32 +34,78 @@ func NewCSVToXLSXError(ErrorCode int) *CSVToXLSXError {
 	return &CSVToXLSXError{ErrorCode: ErrorCode, message: ""}
 }
 
-func LoadCSV(filePath string) ([][]string, error) {
-	file, err := os.Open(filePath)
+func LoadCSV(csvPath string) ([][]string, error) {
+	var csvData [][]string
+
+	csvFile, err := os.Open(csvPath)
 	if err != nil {
-		return nil, NewCSVToXLSXError(-1)
+		return [][]string{}, err
 	}
-
-	reader := csv.NewReader(bufio.NewReader(file))
-	rows, err := reader.ReadAll()
-	if err != nil {
-		return nil, NewCSVToXLSXError(-2)
-	}
-
-	return rows, nil
-}
-
-func CreateXLSX(filePath string, sheetName string) {
-	// file := excelize.NewFile()
-	// index := file.NewSheet(sheetName)
-}
-
-func ConvertCSVToXLSX(csvPath string, xlsxPath string) {
-	rows, _ := LoadCSV(csvPath)
-	for i, row := range rows {
-		for k := range row {
-			fmt.Printf("%s", rows[i][k])
+	defer func() {
+		if err = csvFile.Close(); err != nil {
+			log.Fatal(err)
 		}
-		fmt.Println("")
+	}()
+
+	csvReader := csv.NewReader(csvFile)
+	csvData, err = csvReader.ReadAll()
+	if err != nil {
+		return [][]string{}, err
 	}
+
+	return csvData, err
+}
+
+func ConvertCSVToXLSX(csvPath string, xlsxPath string, sheetName string) error {
+	xlsxPathAbs, _ := filepath.Abs(xlsxPath)
+	_, xlsxFileName := filepath.Split(xlsxPathAbs)
+
+	var csvData [][]string
+	var err error
+
+	csvData, err = LoadCSV(csvPath)
+	if err != nil {
+		return err
+	}
+
+	xlsxFile := excelize.NewFile()
+	xlsxFile.NewSheet(sheetName)
+	defer func() {
+		if err = xlsxFile.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	var lastCellNum string
+	if len(csvData) == 0 || len(csvData[0]) == 0 {
+		lastCellNum = "$A$1"
+	} else {
+		lastCellNum, _ = excelize.CoordinatesToCellName(len(csvData[0]), len(csvData), true)
+	}
+
+	for i, row := range csvData {
+		for k, col := range row {
+			cellNum, _ := excelize.CoordinatesToCellName(k+1, i+1)
+			err := xlsxFile.SetCellValue(sheetName, cellNum, col)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	xlsxFileNameWithoutExt := xlsxFileName[:strings.LastIndex(xlsxFileName, filepath.Ext(xlsxFileName))]
+	xlsxFile.SetDefinedName(&excelize.DefinedName{
+		Name:     fmt.Sprintf("%s %s", time.Now().Format("20060102"), xlsxFileNameWithoutExt),
+		RefersTo: fmt.Sprintf("%s!$A$1:%s", sheetName, lastCellNum),
+		Scope:    sheetName,
+	})
+
+	err = xlsxFile.SaveAs(xlsxPathAbs, excelize.Options{
+		RawCellValue: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
