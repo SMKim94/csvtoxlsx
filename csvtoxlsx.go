@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/xuri/excelize/v2"
@@ -48,7 +49,92 @@ func LoadCSV(filePath string) ([][]string, error) {
 	return rows, nil
 }
 
-func ConvertCSVToXLSX(csvPath string, xlsxPath string, xlsxInfo ...string) error {
+func ConvertCSVToXLSX(csvPath string, xlsxPath string, sheetName string) error {
+	csvPathAbs, _ := filepath.Abs(csvPath)
+	csvDir, csvFileName := filepath.Split(csvPathAbs)
+	xlsxPathAbs, _ := filepath.Abs(xlsxPath)
+	xlsxDir, xlsxFileName := filepath.Split(xlsxPathAbs)
+
+	fmt.Printf("CSV Dir: %s\n", csvDir)
+	fmt.Printf("CSV FileName: %s\n", csvFileName)
+	fmt.Printf("XLSX Dir: %s\n", xlsxDir)
+	fmt.Printf("XLSX FileName: %s\n", xlsxFileName)
+
+	// ----------------------------------------------
+	var csvData [][]string
+
+	csvFile, err := os.Open(csvPath)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err = csvFile.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	csvReader := csv.NewReader(csvFile)
+	csvData, err = csvReader.ReadAll()
+	if err != nil {
+		return err
+	}
+	// for {
+	// 	rec, err := csvReader.Read()
+	// 	if err == io.EOF {
+	// 		break
+	// 	}
+	// 	if err != nil {
+	// 		return [][]string{}, err
+	// 	}
+
+	// 	fmt.Printf("%+v\n", rec)
+	// 	csvData = append(csvData, rec)
+	// }
+	// fmt.Printf("%+v\n", csvData)
+	// ----------------------------------------------
+
+	// ----------------------------------------------
+	xlsxFile := excelize.NewFile()
+	xlsxFile.NewSheet(sheetName)
+	defer func() {
+		if err = xlsxFile.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// var lastCellNum string
+	// if len(csvData) == 0 || len(csvData[0]) == 0 {
+	// 	lastCellNum = "A1"
+	// } else {
+	// 	lastCellNum, _ = excelize.CoordinatesToCellName(len(csvData[0]), len(csvData))
+	// }
+
+	for i, row := range csvData {
+		for k, col := range row {
+			cellNum, _ := excelize.CoordinatesToCellName(k+1, i+1)
+			fmt.Printf("{%s: %v}\t", cellNum, col)
+
+			err := xlsxFile.SetCellValue(sheetName, cellNum, col)
+			if err != nil {
+				return err
+			}
+		}
+		fmt.Println("")
+	}
+
+	err = xlsxFile.SaveAs(xlsxPathAbs, excelize.Options{
+		RawCellValue: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	// ----------------------------------------------
+
+	return nil
+}
+
+func ConvertCSVToXLSX_0(csvPath string, xlsxPath string, xlsxInfo ...string) error {
 	regPath := regexp.MustCompile(`.{1,}\/`)
 	regExt := regexp.MustCompile(`\.[c,C][s,S][v,V]`)
 	csvFileName := regExt.ReplaceAllString(regPath.ReplaceAllString(csvPath, ""), "")

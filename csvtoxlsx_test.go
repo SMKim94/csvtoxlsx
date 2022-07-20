@@ -9,6 +9,7 @@ import (
 )
 
 var csvPath string = "./0.csv"
+var xlsxPath string = "../myExcel.xlsx"
 
 func TestLoadCSV(t *testing.T) {
 	filePath := csvPath
@@ -27,7 +28,7 @@ func TestLoadCSV(t *testing.T) {
 }
 
 func TestConvertCSVToXLSX(t *testing.T) {
-	err := ConvertCSVToXLSX(csvPath, "./", "myExcel", "test")
+	err := ConvertCSVToXLSX(csvPath, xlsxPath, "Sheet1")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

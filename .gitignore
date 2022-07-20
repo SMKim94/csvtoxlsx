@@ -10,13 +10,16 @@
 
 # Test binary, built with `go test -c`
 *.test
-*_test.go
+*_test
 test/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
 # Dependency directories (remove the comment below to include it)
+*.csv
+*.xlsx
+
 # vendor/
 
 # Go workspace file
