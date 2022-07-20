@@ -1,7 +1,6 @@
 package csvtoxlsx
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
 	"log"
@@ -34,19 +33,44 @@ func NewCSVToXLSXError(ErrorCode int) *CSVToXLSXError {
 	return &CSVToXLSXError{ErrorCode: ErrorCode, message: ""}
 }
 
-func LoadCSV(filePath string) ([][]string, error) {
-	file, err := os.Open(filePath)
+// func LoadCSV(filePath string) ([][]string, error) {
+// 	file, err := os.Open(filePath)
+// 	if err != nil {
+// 		return nil, NewCSVToXLSXError(-1)
+// 	}
+
+// 	reader := csv.NewReader(bufio.NewReader(file))
+// 	rows, err := reader.ReadAll()
+// 	if err != nil {
+// 		return nil, NewCSVToXLSXError(-2)
+// 	}
+
+// 	return rows, nil
+// }
+
+func LoadCSV(csvPath string) ([][]string, error) {
+	// csvPathAbs, _ := filepath.Abs(csvPath)
+	// csvDir, csvFileName := filepath.Split(csvPathAbs)
+
+	var csvData [][]string
+
+	csvFile, err := os.Open(csvPath)
 	if err != nil {
-		return nil, NewCSVToXLSXError(-1)
+		return [][]string{}, err
+	}
+	defer func() {
+		if err = csvFile.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	csvReader := csv.NewReader(csvFile)
+	csvData, err = csvReader.ReadAll()
+	if err != nil {
+		return [][]string{}, err
 	}
 
-	reader := csv.NewReader(bufio.NewReader(file))
-	rows, err := reader.ReadAll()
-	if err != nil {
-		return nil, NewCSVToXLSXError(-2)
-	}
-
-	return rows, nil
+	return csvData, err
 }
 
 func ConvertCSVToXLSX(csvPath string, xlsxPath string, sheetName string) error {
@@ -60,40 +84,14 @@ func ConvertCSVToXLSX(csvPath string, xlsxPath string, sheetName string) error {
 	fmt.Printf("XLSX Dir: %s\n", xlsxDir)
 	fmt.Printf("XLSX FileName: %s\n", xlsxFileName)
 
-	// ----------------------------------------------
 	var csvData [][]string
+	var err error
 
-	csvFile, err := os.Open(csvPath)
+	csvData, err = LoadCSV(csvPath)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		if err = csvFile.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
-	csvReader := csv.NewReader(csvFile)
-	csvData, err = csvReader.ReadAll()
-	if err != nil {
-		return err
-	}
-	// for {
-	// 	rec, err := csvReader.Read()
-	// 	if err == io.EOF {
-	// 		break
-	// 	}
-	// 	if err != nil {
-	// 		return [][]string{}, err
-	// 	}
-
-	// 	fmt.Printf("%+v\n", rec)
-	// 	csvData = append(csvData, rec)
-	// }
-	// fmt.Printf("%+v\n", csvData)
-	// ----------------------------------------------
-
-	// ----------------------------------------------
 	xlsxFile := excelize.NewFile()
 	xlsxFile.NewSheet(sheetName)
 	defer func() {
