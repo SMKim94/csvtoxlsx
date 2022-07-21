@@ -12,28 +12,6 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-type CSVToXLSXError struct {
-	ErrorCode int
-	message   string
-}
-
-func (e *CSVToXLSXError) Error() string {
-	prefix := fmt.Sprintf("[CSVToXLSX Error: %d]", e.ErrorCode)
-	switch e.ErrorCode {
-	case -1:
-		e.message = "Failed to load CSV file."
-	case -2:
-		e.message = "Failed to read CSV file."
-	default:
-		e.message = "Unknown Error"
-	}
-	return fmt.Sprintf("%s %s", prefix, e.message)
-}
-
-func NewCSVToXLSXError(ErrorCode int) *CSVToXLSXError {
-	return &CSVToXLSXError{ErrorCode: ErrorCode, message: ""}
-}
-
 func LoadCSV(csvPath string) ([][]string, error) {
 	var csvData [][]string
 
